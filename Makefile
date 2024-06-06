@@ -9,6 +9,9 @@ ifdef ARGS
 $(info Arguments provided: $(ARGS))
 endif
 
+# Default target
+all: build deploy
+
 # Use the arguments in a new target
 args:
 	@echo "The provided arguments are: $(ARGS)"
@@ -20,23 +23,22 @@ test:
 	@echo "The target directory is $(TARGET_DIR)."
 	@echo "The target VERSION of ros is $(VERSION)."
 
-	
-
-# Default target
-all: build deploy
 
 # Build the apptainer
-build:
+$(VERSION).sif: ros.def
 	@echo "Building $(APPTAINER)..."
 	apptainer build --sandbox --build-arg version=$(VERSION) $(VERSION).sif ros.def
-	# sudo apptainer build --force $(VERSION).sif ros.def 
 
-# Deploy the apptainer
-deploy: build
+build: $(VERSION).sif
+
+$(TARGET_DIR)/setup.sh: $(VERSION).sif
 	@echo "Deploying $(APPTAINER)..."
 	sudo mkdir -p $(TARGET_DIR)
 	sudo cp setup.sh $(TARGET_DIR)/setup.sh
 	sudo sed -i 's|APPTAINER_PATH|$(shell pwd)\/$(VERSION).sif|' $(TARGET_DIR)/setup.sh
+
+# Deploy the apptainer
+deploy: $(TARGET_DIR)/setup.sh
 
 # Test the variable replacement in the setup file
 test_setup:
